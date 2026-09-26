@@ -43,6 +43,7 @@ fun AlphabetBar(
     touchYState: MutableState<Float?>,
     onLetterSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    availableLetters: Set<Char> = emptySet(),
     onRelease: (() -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -63,7 +64,7 @@ fun AlphabetBar(
             .onGloballyPositioned { coordinates ->
                 barHeightPx.floatValue = coordinates.size.height.toFloat()
             }
-            .pointerInput(Unit) {
+            .pointerInput(availableLetters) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
                     isTouching.value = true
@@ -119,11 +120,23 @@ fun AlphabetBar(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ALPHABET_ITEMS.forEachIndexed { index, item ->
+                // Dim letters that have no installed apps (Bonus 3)
+                val hasApps = when (index) {
+                    0 -> true // Star (favourites / resting state) is always available
+                    in 1..26 -> {
+                        val char = 'A' + (index - 1)
+                        char in availableLetters
+                    }
+                    else -> true // Symbol/dot category
+                }
+                val alpha = if (hasApps) 0.85f else 0.20f
+                val fontWeight = if (hasApps) FontWeight.SemiBold else FontWeight.Normal
+
                 Text(
                     text = item,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    fontWeight = fontWeight,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .onGloballyPositioned { coordinates ->

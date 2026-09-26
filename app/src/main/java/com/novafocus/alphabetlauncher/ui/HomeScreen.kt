@@ -160,12 +160,13 @@ fun HomeScreen(
             }
         }
 
-        // Pinned alphabet bar on the right edge
+        // Pinned alphabet bar on the right edge with dimming for empty letters (Bonus 3)
         AlphabetBar(
             touchYState = touchYState,
             onLetterSelected = { index ->
                 viewModel.selectLetter(index)
             },
+            availableLetters = appsByLetter.keys,
             modifier = Modifier.align(Alignment.CenterEnd)
         )
     }
