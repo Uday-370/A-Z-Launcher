@@ -17,13 +17,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,10 +38,18 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val favorites by viewModel.favoriteApps.collectAsState()
     val appsByLetter by viewModel.appsByLetter.collectAsState()
     val selectedIndex by viewModel.selectedLetterIndex.collectAsState()
     val touchYState = remember { mutableStateOf<Float?>(null) }
+
+    // Haptics bonus: Fires only when the selected letter index changes, not on every touch coordinate change
+    LaunchedEffect(selectedIndex) {
+        if (selectedIndex != null) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
 
     val isFiltering = selectedIndex != null && selectedIndex != 0
 
