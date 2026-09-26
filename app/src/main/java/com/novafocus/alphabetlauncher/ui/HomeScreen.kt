@@ -40,6 +40,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val favorites by viewModel.favoriteApps.collectAsState()
+    val favoritePackages by viewModel.favoritePackages.collectAsState()
     val appsByLetter by viewModel.appsByLetter.collectAsState()
     val selectedIndex by viewModel.selectedLetterIndex.collectAsState()
     val touchYState = remember { mutableStateOf<Float?>(null) }
@@ -151,6 +152,7 @@ fun HomeScreen(
                                     app = app,
                                     onClick = { viewModel.launchApp(context, it.packageName) },
                                     onLongClick = { viewModel.toggleFavorite(it.packageName) },
+                                    isFavorite = app.packageName in favoritePackages,
                                     modifier = Modifier.padding(vertical = 2.dp)
                                 )
                             }

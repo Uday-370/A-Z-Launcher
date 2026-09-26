@@ -37,6 +37,7 @@ class LauncherViewModel @Inject constructor(
     val appsByLetter: StateFlow<Map<Char, List<InstalledApp>>> = _appsByLetter.asStateFlow()
 
     private val _favoritePackages = MutableStateFlow<Set<String>>(emptySet())
+    val favoritePackages: StateFlow<Set<String>> = _favoritePackages.asStateFlow()
 
     val favoriteApps: StateFlow<List<InstalledApp>> = combine(_allApps, _favoritePackages) { apps, favs ->
         if (favs.isNotEmpty()) {
