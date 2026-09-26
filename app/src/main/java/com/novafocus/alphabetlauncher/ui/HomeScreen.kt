@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -30,14 +31,13 @@ fun HomeScreen(
     val favorites by viewModel.favoriteApps.collectAsState()
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(end = 40.dp) // Leave margin for right-pinned alphabet bar
+        modifier = modifier.fillMaxSize()
     ) {
+        // Main content area
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 48.dp)
+                .padding(end = 40.dp, top = 48.dp)
         ) {
             ClockHeader()
 
@@ -67,5 +67,10 @@ fun HomeScreen(
                 }
             }
         }
+
+        // Pinned 28-item vertical alphabet bar on the right edge
+        AlphabetBar(
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
     }
 }
