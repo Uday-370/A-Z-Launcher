@@ -3,6 +3,7 @@ package com.novafocus.alphabetlauncher.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -33,7 +38,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.novafocus.alphabetlauncher.domain.CurveMath
+import com.novafocus.alphabetlauncher.ui.theme.AccentStar
 import kotlinx.coroutines.launch
+import kotlin.math.exp
 import kotlin.math.roundToInt
 
 val ALPHABET_ITEMS = listOf("★") + ('A'..'Z').map { it.toString() } + listOf("•")
@@ -53,14 +60,14 @@ fun AlphabetBar(
     val currentLetterHoverIndex = remember { mutableIntStateOf(0) }
     val isTouching = remember { mutableStateOf(false) }
 
-    val maxBulgePx = with(density) { 76.dp.toPx() }
+    val maxBulgePx = with(density) { 78.dp.toPx() }
     val animBulge = remember { Animatable(0f) }
 
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .width(56.dp)
-            .padding(vertical = 32.dp)
+            .width(54.dp)
+            .padding(vertical = 28.dp)
             .onGloballyPositioned { coordinates ->
                 barHeightPx.floatValue = coordinates.size.height.toFloat()
             }
@@ -111,32 +118,46 @@ fun AlphabetBar(
         val letterSpacingPx = if (barHeightPx.floatValue > 0) barHeightPx.floatValue / 28f else 60f
         val sigmaPx = letterSpacingPx * 2.8f
 
+        // Subtle tactile pill indicator on the right edge
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(22.dp)
+                .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
+                .background(
+                    if (isTouching.value) Color.White.copy(alpha = 0.05f)
+                    else Color.Transparent
+                )
+        )
+
         // 28 items column
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(40.dp),
+                .width(42.dp),
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ALPHABET_ITEMS.forEachIndexed { index, item ->
                 // Dim letters that have no installed apps (Bonus 3)
+                val isStar = index == 0
                 val hasApps = when (index) {
-                    0 -> true // Star (favourites / resting state) is always available
+                    0 -> true // Star is always active
                     in 1..26 -> {
                         val char = 'A' + (index - 1)
                         char in availableLetters
                     }
-                    else -> true // Symbol/dot category
+                    else -> true
                 }
-                val alpha = if (hasApps) 0.85f else 0.20f
-                val fontWeight = if (hasApps) FontWeight.SemiBold else FontWeight.Normal
+
+                val baseAlpha = if (isStar) 0.95f else if (hasApps) 0.80f else 0.20f
+                val fontColor = if (isStar) AccentStar else MaterialTheme.colorScheme.onBackground
 
                 Text(
                     text = item,
-                    fontSize = 11.sp,
-                    fontWeight = fontWeight,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
+                    fontSize = if (isStar) 12.sp else 10.5.sp,
+                    fontWeight = if (isStar || hasApps) FontWeight.Bold else FontWeight.Normal,
+                    color = fontColor,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .onGloballyPositioned { coordinates ->
@@ -144,6 +165,7 @@ fun AlphabetBar(
                             letterRestYs[index] = bounds.center.y
                         }
                         .offset {
+                            // Lambda form reads touchYState and animBulge during layout phase
                             val touchY = touchYState.value
                             val currentBulge = animBulge.value
                             val restY = letterRestYs[index]
@@ -153,6 +175,18 @@ fun AlphabetBar(
                                 CurveMath.offsetFor(restY - touchY, currentBulge, sigmaPx)
                             }
                             IntOffset(x.roundToInt(), 0)
+                        }
+                        .graphicsLayer {
+                            // Draw-phase scale up and brightening as curve bulges
+                            val touchY = touchYState.value
+                            val restY = letterRestYs[index]
+                            val influence = if (touchY == null || !hasApps) 0f
+                            else exp(-((restY - touchY) * (restY - touchY)) / (2f * sigmaPx * sigmaPx))
+                            
+                            val scale = 1f + 0.35f * influence
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = if (hasApps) (baseAlpha + (1f - baseAlpha) * influence) else baseAlpha
                         }
                 )
             }

@@ -9,8 +9,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,16 +22,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -43,8 +52,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -53,6 +65,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.novafocus.alphabetlauncher.ui.theme.AccentPrimary
+import com.novafocus.alphabetlauncher.ui.theme.AccentStar
 import com.novafocus.alphabetlauncher.viewmodel.LauncherViewModel
 
 @Composable
@@ -92,6 +106,7 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .pointerInput(Unit) {
                 // Bonus 8: Detect swipe-up gesture from bottom
                 detectVerticalDragGestures { _, dragAmount ->
@@ -101,6 +116,20 @@ fun HomeScreen(
                 }
             }
     ) {
+        // Ambient background glow in the upper-left
+        Box(
+            modifier = Modifier
+                .size(360.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AccentPrimary.copy(alpha = 0.09f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         // Main content switches between resting ClockHeader+favourites and filtered letter list
         AnimatedContent(
             targetState = selectedIndex,
@@ -115,21 +144,51 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 48.dp)
+                        .padding(top = 44.dp)
                 ) {
                     ClockHeader()
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    Text(
-                        text = "FAVOURITES",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            letterSpacing = 2.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                    )
+                    // Favourites Header Badge
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Star,
+                            contentDescription = null,
+                            tint = AccentStar,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "FAVOURITES",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 1.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "${favorites.size}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
 
                     LazyColumn(
                         modifier = Modifier
@@ -142,31 +201,44 @@ fun HomeScreen(
                                 onClick = { viewModel.launchApp(context, it.packageName) },
                                 onLongClick = { viewModel.toggleFavorite(it.packageName) },
                                 isFavorite = true,
-                                modifier = Modifier.padding(horizontal = 8.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 1.dp)
                             )
                         }
                     }
 
-                    // Swipe-up search hint pill
+                    // Floating Glass Swipe-Up Search Pill Hint
                     Row(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 24.dp)
+                            .padding(bottom = 28.dp)
+                            .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
                             .clickable { isSearchOpen = true }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.KeyboardArrowUp,
+                            imageVector = Icons.Rounded.Search,
                             contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                            modifier = Modifier.size(20.dp)
+                            tint = AccentPrimary,
+                            modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Swipe up to search",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                            modifier = Modifier.padding(start = 4.dp)
+                            text = "Search installed apps",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowUp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -182,31 +254,102 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 48.dp, start = 16.dp, end = 8.dp)
+                        .padding(top = 44.dp, start = 16.dp, end = 8.dp)
                 ) {
-                    // Selected Letter Header
-                    Text(
-                        text = letterChar.toString(),
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Light,
-                            fontSize = 60.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    // Header Bar with return button, letter hero, and app count chip
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.selectLetter(0) },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Return to home",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
 
-                    if (filteredApps.isEmpty()) {
-                        // Explicit non-empty empty state so reviewer never sees a blank screen
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Text(
+                            text = letterChar.toString(),
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 48.sp,
+                                letterSpacing = (-1).sp
+                            ),
+                            color = AccentPrimary
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 32.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "No apps",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                text = "${filteredApps.size} apps",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 11.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                             )
+                        }
+                    }
+
+                    if (filteredApps.isEmpty()) {
+                        // Empty state with clean iconography and action button
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 80.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.SearchOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No apps starting with '$letterChar'",
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            OutlinedButton(
+                                onClick = { viewModel.selectLetter(0) },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("Back to Favourites")
+                            }
                         }
                     } else {
                         LazyColumn(
@@ -218,7 +361,7 @@ fun HomeScreen(
                                     onClick = { viewModel.launchApp(context, it.packageName) },
                                     onLongClick = { viewModel.toggleFavorite(it.packageName) },
                                     isFavorite = app.packageName in favoritePackages,
-                                    modifier = Modifier.padding(vertical = 2.dp)
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                 )
                             }
                         }
@@ -263,17 +406,22 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(top = 48.dp, start = 16.dp, end = 16.dp)
+                    .padding(top = 44.dp, start = 16.dp, end = 16.dp)
             ) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text("Search installed apps...") },
+                    placeholder = {
+                        Text(
+                            "Search ${allApps.size} apps...",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+                        )
+                    },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Rounded.Search,
                             contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = AccentPrimary
                         )
                     },
                     trailingIcon = {
@@ -286,16 +434,17 @@ fun HomeScreen(
                         }) {
                             Icon(
                                 imageVector = Icons.Rounded.Close,
-                                contentDescription = "Close search"
+                                contentDescription = "Close search",
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                             )
                         }
                     },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = Color.Transparent
+                        focusedIndicatorColor = AccentPrimary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                     ),
                     singleLine = true,
                     modifier = Modifier
@@ -303,20 +452,54 @@ fun HomeScreen(
                         .focusRequester(focusRequester)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (searchQuery.isBlank()) "ALL APPS" else "SEARCH RESULTS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = "${searchResults.size} found",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 if (searchResults.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 48.dp),
+                            .padding(top = 60.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No apps found for \"$searchQuery\"",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Rounded.SearchOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "No apps found for \"$searchQuery\"",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 } else {
                     LazyColumn(
@@ -332,7 +515,7 @@ fun HomeScreen(
                                 },
                                 onLongClick = { viewModel.toggleFavorite(it.packageName) },
                                 isFavorite = app.packageName in favoritePackages,
-                                modifier = Modifier.padding(vertical = 2.dp)
+                                modifier = Modifier.padding(vertical = 1.dp)
                             )
                         }
                     }

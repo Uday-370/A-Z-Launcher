@@ -16,35 +16,39 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = AccentBubble,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
+    primary = AccentPrimary,
+    secondary = AccentViolet,
+    tertiary = AccentCyan,
     background = DarkBackground,
     surface = DarkSurface,
+    surfaceVariant = DarkSurfaceVariant,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = DarkTextPrimary,
-    onSurface = DarkTextPrimary
+    onSurface = DarkTextPrimary,
+    outline = DarkBorder
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = AccentPurple,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
+    primary = AccentPrimary,
+    secondary = AccentViolet,
+    tertiary = AccentCyan,
     background = LightBackground,
     surface = LightSurface,
+    surfaceVariant = LightSurfaceVariant,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = LightTextPrimary,
-    onSurface = LightTextPrimary
+    onSurface = LightTextPrimary,
+    outline = LightBorder
 )
 
 @Composable
 fun AlphabetLauncherTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Set false to prioritize our meticulously crafted high-end palette
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
