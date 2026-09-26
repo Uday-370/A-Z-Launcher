@@ -17,7 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -48,6 +48,7 @@ fun AlphabetBar(
     val density = LocalDensity.current
     val letterRestYs = remember { FloatArray(28) }
     val barHeightPx = remember { mutableFloatStateOf(0f) }
+    val currentLetterHoverIndex = remember { mutableIntStateOf(0) }
 
     val maxBulgePx = with(density) { 72.dp.toPx() }
     val animBulge = remember { Animatable(0f) }
@@ -68,6 +69,7 @@ fun AlphabetBar(
                         animBulge.snapTo(maxBulgePx)
                     }
                     val initialIndex = CurveMath.nearestLetterIndex(down.position.y, letterRestYs)
+                    currentLetterHoverIndex.intValue = initialIndex
                     onLetterSelected(initialIndex)
 
                     var pressed = true
@@ -77,6 +79,7 @@ fun AlphabetBar(
                         if (change != null && change.pressed) {
                             touchYState.value = change.position.y
                             val index = CurveMath.nearestLetterIndex(change.position.y, letterRestYs)
+                            currentLetterHoverIndex.intValue = index
                             onLetterSelected(index)
                             change.consume()
                         } else {
@@ -103,6 +106,7 @@ fun AlphabetBar(
         val letterSpacingPx = if (barHeightPx.floatValue > 0) barHeightPx.floatValue / 28f else 60f
         val sigmaPx = letterSpacingPx * 2.8f
 
+        // 28 items column
         Column(
             modifier = Modifier
                 .fillMaxHeight()
@@ -123,8 +127,6 @@ fun AlphabetBar(
                             letterRestYs[index] = bounds.center.y
                         }
                         .offset {
-                            // Lambda form reads touchYState and animBulge during layout/draw phase,
-                            // avoiding recomposition of all 28 Text nodes on every pixel of finger movement
                             val touchY = touchYState.value
                             val currentBulge = animBulge.value
                             val restY = letterRestYs[index]
@@ -138,5 +140,14 @@ fun AlphabetBar(
                 )
             }
         }
+
+        // Circular LetterBubble positioned just left of finger at current touchY
+        val touchY = touchYState.value
+        val hoverLetter = ALPHABET_ITEMS.getOrElse(currentLetterHoverIndex.intValue) { "A" }
+        LetterBubble(
+            letter = hoverLetter,
+            touchY = touchY,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
     }
 }
