@@ -127,16 +127,3 @@ In compliance with the assignment's disclosure requirement:
   - `viewmodel/LauncherViewModel.kt` — StateFlow architecture and DataStore integration
 - Every generated file was reviewed and can be explained and extended live.
 
----
-
-## 6. TODO: Physical Device Screen Recording
-
-> [!IMPORTANT]
-> This has not been recorded yet. Before submitting, record on a physical device:
-> 1. Resting screen — live clock/date and favourite apps.
-> 2. Slow drag across the bar — smooth Gaussian bend and letter bubble.
-> 3. Fast drag — zero-stutter 60fps and instant letter switching.
-> 4. A letter with zero installed apps — the "No apps" empty state.
-> 5. Finger release — the spring overshoot rebound.
-> 6. Tapping an app in the filtered list to launch it.
-> 7. Every bonus actually built: theme switching, favouriting, swipe-up search, live install/uninstall refresh.
