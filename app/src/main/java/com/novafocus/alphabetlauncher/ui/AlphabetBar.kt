@@ -1,47 +1,140 @@
 package com.novafocus.alphabetlauncher.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.novafocus.alphabetlauncher.domain.CurveMath
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 val ALPHABET_ITEMS = listOf("★") + ('A'..'Z').map { it.toString() } + listOf("•")
 
 @Composable
 fun AlphabetBar(
-    modifier: Modifier = Modifier
+    touchYState: MutableState<Float?>,
+    onLetterSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    onRelease: (() -> Unit)? = null
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val letterRestYs = remember { FloatArray(28) }
+    val barHeightPx = remember { mutableFloatStateOf(0f) }
+
+    val maxBulgePx = with(density) { 72.dp.toPx() }
+    val animBulge = remember { Animatable(0f) }
+
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .width(36.dp)
-            .padding(vertical = 24.dp),
+            .width(56.dp)
+            .padding(vertical = 32.dp)
+            .onGloballyPositioned { coordinates ->
+                barHeightPx.floatValue = coordinates.size.height.toFloat()
+            }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    touchYState.value = down.position.y
+                    coroutineScope.launch {
+                        animBulge.snapTo(maxBulgePx)
+                    }
+                    val initialIndex = CurveMath.nearestLetterIndex(down.position.y, letterRestYs)
+                    onLetterSelected(initialIndex)
+
+                    var pressed = true
+                    while (pressed) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id }
+                        if (change != null && change.pressed) {
+                            touchYState.value = change.position.y
+                            val index = CurveMath.nearestLetterIndex(change.position.y, letterRestYs)
+                            onLetterSelected(index)
+                            change.consume()
+                        } else {
+                            pressed = false
+                        }
+                    }
+
+                    // Release handling with spring physics
+                    coroutineScope.launch {
+                        animBulge.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        )
+                        touchYState.value = null
+                        onRelease?.invoke()
+                    }
+                }
+            },
         contentAlignment = Alignment.CenterEnd
     ) {
+        val letterSpacingPx = if (barHeightPx.floatValue > 0) barHeightPx.floatValue / 28f else 60f
+        val sigmaPx = letterSpacingPx * 2.8f
+
         Column(
-            modifier = Modifier.fillMaxHeight(),
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(40.dp),
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ALPHABET_ITEMS.forEach { item ->
+            ALPHABET_ITEMS.forEachIndexed { index, item ->
                 Text(
                     text = item,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.width(32.dp)
+                    modifier = Modifier
+                        .onGloballyPositioned { coordinates ->
+                            val bounds = coordinates.boundsInParent()
+                            letterRestYs[index] = bounds.center.y
+                        }
+                        .offset {
+                            // Lambda form reads touchYState and animBulge during layout/draw phase,
+                            // avoiding recomposition of all 28 Text nodes on every pixel of finger movement
+                            val touchY = touchYState.value
+                            val currentBulge = animBulge.value
+                            val restY = letterRestYs[index]
+                            val x = if (touchY == null || currentBulge == 0f) {
+                                0f
+                            } else {
+                                CurveMath.offsetFor(restY - touchY, currentBulge, sigmaPx)
+                            }
+                            IntOffset(x.roundToInt(), 0)
+                        }
                 )
             }
         }
