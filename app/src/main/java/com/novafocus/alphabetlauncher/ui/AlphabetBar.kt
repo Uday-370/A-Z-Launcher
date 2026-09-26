@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -49,8 +50,9 @@ fun AlphabetBar(
     val letterRestYs = remember { FloatArray(28) }
     val barHeightPx = remember { mutableFloatStateOf(0f) }
     val currentLetterHoverIndex = remember { mutableIntStateOf(0) }
+    val isTouching = remember { mutableStateOf(false) }
 
-    val maxBulgePx = with(density) { 72.dp.toPx() }
+    val maxBulgePx = with(density) { 76.dp.toPx() }
     val animBulge = remember { Animatable(0f) }
 
     Box(
@@ -64,6 +66,7 @@ fun AlphabetBar(
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
+                    isTouching.value = true
                     touchYState.value = down.position.y
                     coroutineScope.launch {
                         animBulge.snapTo(maxBulgePx)
@@ -87,7 +90,8 @@ fun AlphabetBar(
                         }
                     }
 
-                    // Release handling with spring physics
+                    // Release handling: spring physics with overshoot
+                    isTouching.value = false
                     coroutineScope.launch {
                         animBulge.animateTo(
                             targetValue = 0f,
@@ -141,12 +145,12 @@ fun AlphabetBar(
             }
         }
 
-        // Circular LetterBubble positioned just left of finger at current touchY
+        // Circular LetterBubble shown while actively touching
         val touchY = touchYState.value
         val hoverLetter = ALPHABET_ITEMS.getOrElse(currentLetterHoverIndex.intValue) { "A" }
         LetterBubble(
             letter = hoverLetter,
-            touchY = touchY,
+            touchY = if (isTouching.value) touchY else null,
             modifier = Modifier.align(Alignment.TopEnd)
         )
     }
