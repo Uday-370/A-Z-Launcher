@@ -36,6 +36,35 @@ class CurveMathTest {
     }
 
     @Test
+    fun offsetFor_sigmaTuningVisiblyMovesAroundFiveToSixLetters() {
+        // Assume spacing between letters is 50px, and sigma is tuned to 2.8x spacing = 140px
+        val letterSpacing = 50f
+        val sigmaTuned = letterSpacing * 2.8f
+        val maxB = 100f
+
+        // Letters at distance: d=0 (1 letter), d=±50 (2 letters), d=±100 (2 letters), d=±150 (2 letters)
+        val center = CurveMath.offsetFor(0f, maxB, sigmaTuned)
+        val neighbor1 = CurveMath.offsetFor(letterSpacing, maxB, sigmaTuned)
+        val neighbor2 = CurveMath.offsetFor(2 * letterSpacing, maxB, sigmaTuned)
+        val distant = CurveMath.offsetFor(4 * letterSpacing, maxB, sigmaTuned)
+
+        // Center gets full bulge
+        assertEquals(-100f, center, 0.01f)
+        // First neighbors (±1) retain > 90% influence
+        assertTrue(abs(neighbor1) > 90f)
+        // Second neighbors (±2) retain > 75% influence (visibly bending)
+        assertTrue(abs(neighbor2) > 75f)
+        // Letters 4 steps away settle near negligible displacement (< 36% and rapidly diminishing)
+        assertTrue(abs(distant) < 40f)
+    }
+
+    @Test
+    fun offsetFor_zeroSigma_returnsZeroSafely() {
+        val offset = CurveMath.offsetFor(distancePx = 10f, maxBulgePx = 100f, sigmaPx = 0f)
+        assertEquals(0f, offset, 0.0001f)
+    }
+
+    @Test
     fun nearestLetterIndex_exactRestY_returnsCorrectIndex() {
         val restYs = floatArrayOf(100f, 130f, 160f, 190f, 220f)
         assertEquals(0, CurveMath.nearestLetterIndex(100f, restYs))
@@ -68,5 +97,10 @@ class CurveMathTest {
 
         // Far below bottom item
         assertEquals(4, CurveMath.nearestLetterIndex(500f, restYs))
+    }
+
+    @Test
+    fun nearestLetterIndex_emptyArray_returnsZeroGracefully() {
+        assertEquals(0, CurveMath.nearestLetterIndex(100f, FloatArray(0)))
     }
 }
