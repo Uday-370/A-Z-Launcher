@@ -1,4 +1,4 @@
-# Alphabet Launcher (NovaFocus)
+# Alphabet Launcher
 
 A high-performance, minimal Android home-screen replacement built with Jetpack Compose, Material 3, MVVM, and Hilt. It features an interactive, right-edge-pinned vertical alphabet bar that bends toward the user's finger using a hand-written Gaussian curve falloff, switching in real time to an indexed app list with steady 60fps performance and zero touch-path allocations.
 
